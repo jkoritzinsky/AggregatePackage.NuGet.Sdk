@@ -1,0 +1,177 @@
+<Project>
+<Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <!-- Patched Restore Targets -->
+
+  <Target Name="_GenerateRestoreProjectPathWalk"
+    DependsOnTargets="_GenerateRestoreProjectPathItems"
+    Returns="@(_RestoreProjectPathItems)">
+
+    <!-- Include only the current project in the result -->
+    <ItemGroup>
+      <_RestoreProjectPathItems Include="$(MSBuildProjectFullPath)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_GenerateRestoreGraph"
+      DependsOnTargets="_FilterRestoreGraphProjectInputItems;_GetAllRestoreProjectPathItems"
+      Returns="@(_RestoreGraphEntry)">
+    <Message Text="Generating dg file" Importance="low" />
+    <Message Text="%(_RestoreProjectPathItems.Identity)" Importance="low" />
+
+    <!-- Use all projects if RestoreRecursive is true. Otherwise use only the top level projects. -->
+    <ItemGroup>
+      <_GenerateRestoreGraphProjectEntryInput Include="@(FilteredRestoreGraphProjectInputItems)" Condition=" '$(RestoreRecursive)' != 'true' " />
+      <_GenerateRestoreGraphProjectEntryInput Include="@(_RestoreProjectPathItems)" Condition=" '$(RestoreRecursive)' == 'true' " />
+    </ItemGroup>
+
+    <!-- Add top level entries to the direct restore list. These projects will also restore tools. -->
+    <MsBuild
+        BuildInParallel="$(RestoreBuildInParallel)"
+        Projects="$(MSBuildProjectFile)"
+        Targets="_GenerateRestoreGraphProjectEntry"
+        Properties="$(_GenerateRestoreGraphProjectEntryInputProperties)">
+
+      <Output
+          TaskParameter="TargetOutputs"
+          ItemName="_RestoreGraphEntry" />
+    </MsBuild>
+
+    <!-- Generate a spec for every project including dependencies. -->
+    <MsBuild
+        BuildInParallel="$(RestoreBuildInParallel)"
+        Projects="@(_RestoreProjectPathItems)"
+        Targets="_GenerateProjectRestoreGraph"
+        Properties="$(_GenerateRestoreGraphProjectEntryInputProperties)">
+
+      <Output
+          TaskParameter="TargetOutputs"
+          ItemName="_RestoreGraphEntry" />
+    </MsBuild>
+  </Target>
+
+  <PropertyGroup>
+      <CollectPackageReferencesDependsOn>
+        AssignProjectConfigurationDirectProjectReferencesOnly;
+        _SplitProjectReferencesByFileExistence;
+        _GetProjectReferenceTargetFrameworkProperties
+      </CollectPackageReferencesDependsOn>
+  </PropertyGroup>
+
+  <Target
+    Name="AssignProjectConfigurationDirectProjectReferencesOnly"
+    Condition="'$(CurrentSolutionConfigurationContents)' != '' or '@(ProjectReference)'!=''">
+
+    <PropertyGroup>
+      <OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration Condition="'$(OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration)' == ''">true</OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration>
+      <ShouldUnsetParentConfigurationAndPlatform Condition="'$(ShouldUnsetParentConfigurationAndPlatform)' == '' and ('$(BuildingInsideVisualStudio)' == 'true' or '$(BuildingSolutionFile)' == 'true')">true</ShouldUnsetParentConfigurationAndPlatform>
+      <ShouldUnsetParentConfigurationAndPlatform Condition="'$(ShouldUnsetParentConfigurationAndPlatform)' == ''">false</ShouldUnsetParentConfigurationAndPlatform>
+
+      <!-- Inside VS, we do not need to add synthetic references, as VS already organizes the build per any solution-level dependencies; we only do this on the command line-->
+      <AddSyntheticProjectReferencesForSolutionDependencies Condition="'$(AddSyntheticProjectReferencesForSolutionDependencies)' == '' and '$(BuildingInsideVisualStudio)' != 'true'">true</AddSyntheticProjectReferencesForSolutionDependencies>
+    </PropertyGroup>
+
+    <!-- Assign a project configuration to each project reference if we're building a solution file. -->
+    <AssignProjectConfiguration
+        ProjectReferences="@(ProjectReference)"
+        CurrentProject="$(MSBuildProjectFullPath)"
+        CurrentProjectConfiguration="$(Configuration)"
+        CurrentProjectPlatform="$(Platform)"
+        DefaultToVcxPlatformMapping="$(DefaultToVcxPlatformMapping)"
+        VcxToDefaultPlatformMapping="$(VcxToDefaultPlatformMapping)"
+        OutputType="$(OutputType)"
+        ResolveConfigurationPlatformUsingMappings="false"
+        SolutionConfigurationContents="$(CurrentSolutionConfigurationContents)"
+        AddSyntheticProjectReferencesForSolutionDependencies="$(AddSyntheticProjectReferencesForSolutionDependencies)"
+        OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration = "$(OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration)"
+        ShouldUnsetParentConfigurationAndPlatform = "$(ShouldUnsetParentConfigurationAndPlatform)" >
+      <Output TaskParameter="AssignedProjects" ItemName="ProjectReferenceWithConfiguration"/>
+      <Output TaskParameter="UnassignedProjects" ItemName="ProjectReferenceWithConfiguration"/>
+    </AssignProjectConfiguration>
+
+    <ItemGroup>
+      <ProjectReferenceWithConfiguration>
+        <BuildReference Condition="'%(ProjectReferenceWithConfiguration.BuildReference)' == ''">true</BuildReference>
+        <ReferenceOutputAssembly Condition="'%(ProjectReferenceWithConfiguration.ReferenceOutputAssembly)' == ''">true</ReferenceOutputAssembly>
+      </ProjectReferenceWithConfiguration>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CollectPackageReferences"
+    DependsOnTargets="$(CollectPackageReferencesDependsOn)"
+    Returns="@(PackageReference)">
+    <MSBuild
+      Projects="@(_MSBuildProjectReferenceExistent)"
+      Targets="CollectPackageReferences"
+      Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
+                  %(_MSBuildProjectReferenceExistent.SetPlatform);
+                  %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
+      <Output TaskParameter="TargetOutputs" ItemName="PackageReference" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="_GenerateProjectRestoreGraphPerFramework"
+    DependsOnTargets="_GetRestoreProjectStyle;CollectPackageReferences"
+    Returns="@(_RestoreGraphEntry)">
+    <GetRestorePackageReferencesTask
+      ProjectUniqueName="$(MSBuildProjectFullPath)"
+      PackageReferences="@(PackageReference)"
+      TargetFrameworks="$(TargetFramework)">
+
+      <Output
+        TaskParameter="RestoreGraphItems"
+        ItemName="_RestoreGraphEntry" />
+    </GetRestorePackageReferencesTask>
+
+    <PropertyGroup>
+      <_CombinedFallbacks>$(PackageTargetFallback);$(AssetTargetFallback)</_CombinedFallbacks>
+    </PropertyGroup>
+
+    <!-- Write out target framework information -->
+    <ItemGroup Condition="  '$(PackageReferenceCompatibleProjectStyle)' == 'true' AND '$(_CombinedFallbacks)' != '' ">
+      <_RestoreGraphEntry Include="$([System.Guid]::NewGuid())">
+        <Type>TargetFrameworkInformation</Type>
+        <ProjectUniqueName>$(MSBuildProjectFullPath)</ProjectUniqueName>
+        <PackageTargetFallback>$(PackageTargetFallback)</PackageTargetFallback>
+        <AssetTargetFallback>$(AssetTargetFallback)</AssetTargetFallback>
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+      </_RestoreGraphEntry>
+    </ItemGroup>
+  </Target>
+
+  <Import Project="Aggregate.Sdk.Build.targets" Condition="'$(IsCrossTargetingBuild)' != 'true'" />
+  
+  <!-- Patched Pack Targets -->
+
+  <Target Name="_GetBuildOutputFilesWithTfm"
+    DependsOnTargets="PrepareProjectReferences"
+    Returns="@(BuildOutputInPackage)">
+    <MSBuild
+      Projects="@(_MSBuildProjectReferenceExistent)"
+      Targets="_GetBuildOutputFilesWithTfm"
+      Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
+                   %(_MSBuildProjectReferenceExistent.SetPlatform);
+                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
+      <Output TaskParameter="TargetOutputs" ItemName="BuildOutputInPackage" />
+    </MSBuild>
+  </Target>
+
+
+  <Target Name="_GetDebugSymbolsWithTfm"
+          DependsOnTargets="PrepareProjectReferences"
+          Returns="@(DebugSymbolsInPackage)">
+    <MSBuild
+      Projects="@(_MSBuildProjectReferenceExistent)"
+      Targets="_GetDebugSymbolsWithTfm"
+      Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
+                   %(_MSBuildProjectReferenceExistent.SetPlatform);
+                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
+      <Output
+          TaskParameter="TargetOutputs"
+          ItemName="DebugSymbolsInPackage" />
+    </MSBuild>
+  </Target>
+</Project>
