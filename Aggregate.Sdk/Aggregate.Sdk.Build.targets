@@ -1,6 +1,6 @@
 <Project>
 
-  <!-- Patched Build Targets -->
+  <!-- Patched Build Targets (should only be used in an inner-build) -->
 
   <!-- TODO: Once MSBuild learns that a single project can have multiple outputs, change the targets below not include the output of this project and update the %(OutputPath.MSBuildSourceProjectFile) metadata -->
   <Target

@@ -21,51 +21,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="_GenerateRestoreGraph"
-      DependsOnTargets="_FilterRestoreGraphProjectInputItems;_GetAllRestoreProjectPathItems"
-      Returns="@(_RestoreGraphEntry)">
-    <Message Text="Generating dg file" Importance="low" />
-    <Message Text="%(_RestoreProjectPathItems.Identity)" Importance="low" />
-
-    <!-- Use all projects if RestoreRecursive is true. Otherwise use only the top level projects. -->
-    <ItemGroup>
-      <_GenerateRestoreGraphProjectEntryInput Include="@(FilteredRestoreGraphProjectInputItems)" Condition=" '$(RestoreRecursive)' != 'true' " />
-      <_GenerateRestoreGraphProjectEntryInput Include="@(_RestoreProjectPathItems)" Condition=" '$(RestoreRecursive)' == 'true' " />
-    </ItemGroup>
-
-    <!-- Add top level entries to the direct restore list. These projects will also restore tools. -->
-    <MsBuild
-        BuildInParallel="$(RestoreBuildInParallel)"
-        Projects="$(MSBuildProjectFile)"
-        Targets="_GenerateRestoreGraphProjectEntry"
-        Properties="$(_GenerateRestoreGraphProjectEntryInputProperties)">
-
-      <Output
-          TaskParameter="TargetOutputs"
-          ItemName="_RestoreGraphEntry" />
-    </MsBuild>
-
-    <!-- Generate a spec for every project including dependencies. -->
-    <MsBuild
-        BuildInParallel="$(RestoreBuildInParallel)"
-        Projects="@(_RestoreProjectPathItems)"
-        Targets="_GenerateProjectRestoreGraph"
-        Properties="$(_GenerateRestoreGraphProjectEntryInputProperties)">
-
-      <Output
-          TaskParameter="TargetOutputs"
-          ItemName="_RestoreGraphEntry" />
-    </MsBuild>
-  </Target>
-
-  <PropertyGroup>
-      <CollectPackageReferencesDependsOn>
-        AssignProjectConfigurationDirectProjectReferencesOnly;
-        _SplitProjectReferencesByFileExistence;
-        _GetProjectReferenceTargetFrameworkProperties
-      </CollectPackageReferencesDependsOn>
-  </PropertyGroup>
-
+  <!-- Add copy of AssignProjectConfiguration target so targets that have BeforeTargets="AssignProjectConfiguration" don't run. -->
   <Target
     Name="AssignProjectConfigurationDirectProjectReferencesOnly"
     Condition="'$(CurrentSolutionConfigurationContents)' != '' or '@(ProjectReference)'!=''">
@@ -105,6 +61,7 @@
     </ItemGroup>
   </Target>
 
+  <!-- Collect package references from referenced projects. -->
   <Target Name="CollectPackageReferences"
     DependsOnTargets="$(CollectPackageReferencesDependsOn)"
     Returns="@(PackageReference)">
@@ -119,6 +76,7 @@
     </MSBuild>
   </Target>
 
+  <!-- Override target to not restore package references. -->
   <Target Name="_GenerateProjectRestoreGraphPerFramework"
     DependsOnTargets="_GetRestoreProjectStyle;CollectPackageReferences"
     Returns="@(_RestoreGraphEntry)">
@@ -185,7 +143,7 @@
           TaskParameter="TargetOutputs"
           ItemName="DebugSymbolsInPackage" />
     </MSBuild>
-    
+
     <ItemGroup>
       <BuildOutputInPackage Update="@(BuildOutputInPackage)" TargetFramework="$(TargetFramework)" />
     </ItemGroup>
