@@ -6,11 +6,8 @@
   <Target
     Name="Build"
     Condition=" '$(_InvalidConfigurationWarning)' != 'true' "
-    DependsOnTargets="$(BuildDependsOn)"
+    DependsOnTargets="PrepareProjectReferences"
     Returns="@(OutputBuildFiles)">
-    <ItemGroup>
-      <OutputBuildFiles Include="@(TargetPathWithTargetPlatformMoniker)" />
-    </ItemGroup>
 
     <MSBuild
       BuildInParallel="$(BuildInParallel)"
@@ -23,21 +20,20 @@
       <Output TaskParameter="TargetOutputs" ItemName="OutputBuildFiles" />
     </MSBuild>
 
-    <!-- 
+    <ConvertToAbsolutePath Paths="$(MSBuildProjectFile)">
+      <Output TaskParameter="AbsolutePaths" PropertyName="MSBuildProjectFileAbsolutePath" />
+    </ConvertToAbsolutePath>
+
     <ItemGroup>
-      <OutputBuildFiles Update="@(OutputBuildFiles)" MSBuildSourceProjectFile="$(MSBuildProjectFile)" />
+      <OutputBuildFiles Update="@(OutputBuildFiles)" MSBuildSourceProjectFile="$(MSBuildProjectFileAbsolutePath)" />
     </ItemGroup>
-    -->
   </Target>
 
   <Target
     Name="GetTargetPath"
     Condition=" '$(_InvalidConfigurationWarning)' != 'true' "
-    DependsOnTargets="PrepareProjectReferences;$(GetTargetPathDependsOn)"
+    DependsOnTargets="PrepareProjectReferences"
     Returns="@(OutputBuildFiles)">
-    <ItemGroup>
-      <OutputBuildFiles Include="@(TargetPathWithTargetPlatformMoniker)" />
-    </ItemGroup>
 
     <MSBuild
       BuildInParallel="$(BuildInParallel)"
@@ -50,10 +46,12 @@
       <Output TaskParameter="TargetOutputs" ItemName="OutputBuildFiles" />
     </MSBuild>
 
-    <!-- 
+    <ConvertToAbsolutePath Paths="$(MSBuildProjectFile)">
+      <Output TaskParameter="AbsolutePaths" PropertyName="MSBuildProjectFileAbsolutePath" />
+    </ConvertToAbsolutePath>
+
     <ItemGroup>
-      <OutputBuildFiles Update="@(OutputBuildFiles)" MSBuildSourceProjectFile="$(MSBuildProjectFile)" />
+      <OutputBuildFiles Update="@(OutputBuildFiles)" MSBuildSourceProjectFile="$(MSBuildProjectFileAbsolutePath)" />
     </ItemGroup>
-    -->
   </Target>
 </Project>

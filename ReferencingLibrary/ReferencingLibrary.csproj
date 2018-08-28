@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AggregateLibrary\AggregateLibrary.csproj" />
+    <ProjectReference Include="..\AggregateLibrary\AggregateLibrary.pkgproj" />
   </ItemGroup>
 
 </Project>
