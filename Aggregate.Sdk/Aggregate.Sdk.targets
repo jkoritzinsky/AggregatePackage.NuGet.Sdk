@@ -3,6 +3,14 @@
 
   <!-- Patched Restore Targets -->
 
+  <Target Name="_GetRestoreProjectStyle"
+    Returns="$(RestoreProjectStyle);$(PackageReferenceCompatibleProjectStyle)">
+    <PropertyGroup>
+      <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+      <PackageReferenceCompatibleProjectStyle>true</PackageReferenceCompatibleProjectStyle>
+    </PropertyGroup>
+  </Target>
+
   <Target Name="_GenerateRestoreProjectPathWalk"
     DependsOnTargets="_GenerateRestoreProjectPathItems"
     Returns="@(_RestoreProjectPathItems)">
@@ -156,6 +164,10 @@
       RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
       <Output TaskParameter="TargetOutputs" ItemName="BuildOutputInPackage" />
     </MSBuild>
+
+    <ItemGroup>
+      <BuildOutputInPackage Update="@(BuildOutputInPackage)" TargetFramework="$(TargetFramework)" />
+    </ItemGroup>
   </Target>
 
 
@@ -173,5 +185,9 @@
           TaskParameter="TargetOutputs"
           ItemName="DebugSymbolsInPackage" />
     </MSBuild>
+    
+    <ItemGroup>
+      <BuildOutputInPackage Update="@(BuildOutputInPackage)" TargetFramework="$(TargetFramework)" />
+    </ItemGroup>
   </Target>
 </Project>
