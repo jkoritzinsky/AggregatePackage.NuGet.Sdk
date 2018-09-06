@@ -149,7 +149,58 @@
     </MSBuild>
 
     <ItemGroup>
-      <BuildOutputInPackage Update="@(BuildOutputInPackage)" TargetFramework="$(TargetFramework)" />
+      <DebugSymbolsInPackage Update="@(DebugSymbolsInPackage)" TargetFramework="$(TargetFramework)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_GetTfmSpecificContentForPackage"
+          DependsOnTargets="PrepareProjectReferences"
+          Returns="@(TfmSpecificPackageFileWithRecursiveDir)">
+    <MSBuild
+      Projects="@(_MSBuildProjectReferenceExistent)"
+      Targets="_GetTfmSpecificContentForPackage"
+      Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
+                   %(_MSBuildProjectReferenceExistent.SetPlatform);
+                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)"
+      Condition="'%(_MSBuildProjectReferenceExistent.EmbedReference)' != 'false'">
+      <Output
+          TaskParameter="TargetOutputs"
+          ItemName="TfmSpecificPackageFileWithRecursiveDir" />
+    </MSBuild>
+
+    <ItemGroup>
+      <TfmSpecificPackageFileWithRecursiveDir
+        Update="@(TfmSpecificPackageFileWithRecursiveDir)"
+        TargetFramework="$(TargetFramework)" />
+        
+      <TfmSpecificPackageFileWithRecursiveDir Include="@(TfmSpecificPackageFile)">
+        <NuGetRecursiveDir>%(TfmSpecificPackageFile.RecursiveDir)</NuGetRecursiveDir>
+        <BuildAction>%(TfmSpecificPackageFile.BuildAction)</BuildAction>
+      </TfmSpecificPackageFileWithRecursiveDir>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_GetFrameworkAssemblyReferences"
+          DependsOnTargets="PrepareProjectReferences"
+          Returns="@(TfmSpecificFrameworkAssemblyReferences)">
+    <MSBuild
+      Projects="@(_MSBuildProjectReferenceExistent)"
+      Targets="_GetFrameworkAssemblyReferences"
+      Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
+                   %(_MSBuildProjectReferenceExistent.SetPlatform);
+                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)"
+      Condition="'%(_MSBuildProjectReferenceExistent.EmbedReference)' != 'false'">
+      <Output
+          TaskParameter="TargetOutputs"
+          ItemName="TfmSpecificFrameworkAssemblyReferences" />
+    </MSBuild>
+
+    <ItemGroup>
+      <TfmSpecificFrameworkAssemblyReferences
+        Update="@(TfmSpecificFrameworkAssemblyReferences)"
+        TargetFramework="$(TargetFramework)" />
     </ItemGroup>
   </Target>
 </Project>
