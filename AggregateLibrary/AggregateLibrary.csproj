@@ -1,5 +1,5 @@
 ﻿<Project>
-  <Import Project="../Aggregate.Sdk/Aggregate.Sdk.props" />
+  <Import Project="../AggregatePackage.NuGet.Sdk/Sdk/Sdk.props" />
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp2.0</TargetFrameworks>
@@ -11,6 +11,6 @@
     <ProjectReference Include="..\NonEmbeddedLibrary\NonEmbeddedLibrary.csproj" EmbedReference="false" />
   </ItemGroup>
 
-  <Import Project="../Aggregate.Sdk/Aggregate.Sdk.targets" />
+  <Import Project="../AggregatePackage.NuGet.Sdk/Sdk/Sdk.targets" />
 
 </Project>

@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Authors>Jeremy Koritzinsky</Authors>
+    <Company>Jeremy Koritzinsky</Company>
+    <Copyright>© Jeremy Koritzinsky. All rights reserved.</Copyright>
+    <PackageLicenseUrl>https://github.com/jkoritzinsky/AggregatePackage.NuGet.Sdk/blob/master/LICENSE.txt</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/jkoritzinsky/AggregatePackage.NuGet.Sdk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jkoritzinsky/AggregatePackage.NuGet.Sdk.git</RepositoryUrl>
+  </PropertyGroup>
+</Project>

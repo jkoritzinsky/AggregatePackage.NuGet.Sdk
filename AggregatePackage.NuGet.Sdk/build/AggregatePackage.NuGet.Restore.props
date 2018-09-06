@@ -1,6 +1,4 @@
 <Project>
-    <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
-    
     <PropertyGroup>
       <CollectPackageReferencesDependsOn>
         AssignProjectConfigurationDirectProjectReferencesOnly;
