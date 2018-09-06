@@ -19,7 +19,8 @@
       Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
                    %(_MSBuildProjectReferenceExistent.SetPlatform);
                    %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
-      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)"
+      Condition="'%(_MSBuildProjectReferenceExistent.EmbedReference)' != 'false'">
       <Output TaskParameter="TargetOutputs" ItemName="OutputBuildFiles" />
     </MSBuild>
 
@@ -46,7 +47,8 @@
       Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
                    %(_MSBuildProjectReferenceExistent.SetPlatform);
                    %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
-      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)"
+      Condition="'%(_MSBuildProjectReferenceExistent.EmbedReference)' != 'false'">
       <Output TaskParameter="TargetOutputs" ItemName="OutputBuildFiles" />
     </MSBuild>
 
