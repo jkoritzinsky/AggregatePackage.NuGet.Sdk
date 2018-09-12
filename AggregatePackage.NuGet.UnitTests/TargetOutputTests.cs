@@ -46,6 +46,54 @@ namespace AggregatePackage.NuGet.UnitTests
                 );
         }
 
+        [Fact]
+        public void CollectPackageReferences_Should_Remove_Duplicates()
+        {
+            var referenced1 = "referenced1";
+            var referenced2 = "referenced2";
+
+            var referenced1Project = ProjectCreator
+                .Templates
+                .SdkCsproj(
+                    path: Path.Combine(TestRootPath, referenced1, $"{referenced1}.csproj")
+                )
+                .ItemPackageReference("ReferencedPackage", "1.0.0")
+                .Save();
+
+            var referenced2Project = ProjectCreator
+                .Templates
+                .SdkCsproj(
+                    path: Path.Combine(TestRootPath, referenced2, $"{referenced2}.csproj")
+                )
+                .ItemPackageReference("ReferencedPackage", "1.0.0")
+                .Save();
+
+            var sdkProject = ProjectCreator
+                .Templates
+                .AggregateProject(
+                    path: Path.Combine(TestRootPath, "test.pkgproj"),
+                    projectReferences: new Dictionary<Project, bool>
+                    {
+                        { referenced1Project.Project, true },
+                        { referenced2Project.Project, true }
+                    }
+                ).Save()
+                .TryBuild("CollectPackageReferences", out TargetResult targetResult, out var output);
+
+            targetResult.ResultCode.ShouldBe(TargetResultCode.Success, () => output.GetConsoleLog());
+
+            targetResult.Items
+                .Where(item => item.ItemSpec != "NETStandard.Library")
+                .Select(item => new KeyValuePair<string, string>(item.ItemSpec, item.GetMetadata("Version")))
+                .ShouldBe(
+                    new Dictionary<string, string>
+                    {
+                        { "ReferencedPackage", "1.0.0"}
+                    },
+                    ignoreOrder: true
+                );
+        }
+
         [Theory]
         [InlineData("GetTargetPath")]
         [InlineData("Build")]

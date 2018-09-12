@@ -62,8 +62,13 @@
                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
       RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)"
       Condition="'%(_MSBuildProjectReferenceExistent.EmbedReference)' != 'false'">
-      <Output TaskParameter="TargetOutputs" ItemName="PackageReference" />
+      <Output TaskParameter="TargetOutputs" ItemName="UnfliteredPackageReference" />
     </MSBuild>
+
+    <RemoveDuplicates Inputs="@(UnfliteredPackageReference)">
+      <Output TaskParameter="Filtered" ItemName="PackageReference" />
+    </RemoveDuplicates>
+      
   </Target>
 
   <!-- Override target to not restore embedded project references. -->
