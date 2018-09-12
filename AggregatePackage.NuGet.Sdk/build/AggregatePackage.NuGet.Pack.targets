@@ -18,7 +18,6 @@
     </ItemGroup>
   </Target>
 
-
   <Target Name="_GetDebugSymbolsWithTfm"
           DependsOnTargets="PrepareProjectReferences"
           Returns="@(DebugSymbolsInPackage)">
