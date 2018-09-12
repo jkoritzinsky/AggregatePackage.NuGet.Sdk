@@ -32,6 +32,8 @@ namespace AggregatePackage.NuGet.UnitTests
                 ).Save()
                 .TryBuild("CollectPackageReferences", out TargetResult targetResult, out var output);
 
+            targetResult.ResultCode.ShouldBe(TargetResultCode.Success, () => output.GetConsoleLog());
+
             targetResult.Items
                 .Where(item => item.ItemSpec != "NETStandard.Library")
                 .ToDictionary(item => item.ItemSpec, item => item.GetMetadata("Version"))
@@ -85,6 +87,8 @@ namespace AggregatePackage.NuGet.UnitTests
             restoreResult.ShouldBeTrue(() => restoreOutput.GetConsoleLog());
 
             sdkProject.TryBuild(target, out TargetResult targetResult, out var output);
+
+            targetResult.ResultCode.ShouldBe(TargetResultCode.Success, () => output.GetConsoleLog());
 
             var buildOutputs = targetResult.Items
                 .Select(item => item.ItemSpec);
