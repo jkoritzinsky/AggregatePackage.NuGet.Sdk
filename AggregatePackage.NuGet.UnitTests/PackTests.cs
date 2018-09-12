@@ -1,14 +1,12 @@
 ﻿using Microsoft.Build.Evaluation;
 using Microsoft.Build.Utilities.ProjectCreation;
 using NuGet;
+using Shouldly;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.Versioning;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace AggregatePackage.NuGet.UnitTests
@@ -49,12 +47,18 @@ namespace AggregatePackage.NuGet.UnitTests
                         { referenced2Project.Project, true }
                     },
                     targetFrameworks: new[] { targetFramework }
-                ).Save();
+                ).Save()
+                .TryBuild("Restore", out var restoreResult, out var restoreOutput)
+                .ForceProjectReevaluation()
+                .TryBuild("Pack", out var result, out var output);
 
-            var package = BuildPackage(sdkProject.FullPath, Path.Combine(TestRootPath, "test", "bin", "Debug"));
+            restoreResult.ShouldBeTrue(() => restoreOutput.GetConsoleLog());
+            result.ShouldBeTrue(() => output.GetConsoleLog());
 
-            Assert.Null(package.FindDependency(referenced1, NetStandard20));
-            Assert.Null(package.FindDependency(referenced2, NetStandard20));
+            var package = ReadPackage("test");
+
+            package.FindDependency(referenced1, NetStandard20).ShouldBeNull();
+            package.FindDependency(referenced2, NetStandard20).ShouldBeNull();
         }
 
         [Fact]
@@ -89,9 +93,12 @@ namespace AggregatePackage.NuGet.UnitTests
                         { referenced2Project.Project, false }
                     },
                     targetFrameworks: new[] { targetFramework }
-                ).Save();
-            
-            var package = BuildPackage(sdkProject.FullPath, Path.Combine(TestRootPath, "test", "bin", "Debug"));
+                ).Save()
+                .TryBuild("Restore", out var restoreResult, out var restoreOutput)
+                .ForceProjectReevaluation()
+                .TryBuild("Pack", out var result, out var output);
+
+            var package = ReadPackage("test");
             Assert.Null(package.FindDependency(referenced1, NetStandard20));
             Assert.NotNull(package.FindDependency(referenced2, NetStandard20));
         }
@@ -136,41 +143,25 @@ namespace AggregatePackage.NuGet.UnitTests
                     path: Path.Combine(TestRootPath, "referencing", "referencing.csproj"),
                     targetFramework: targetFramework)
                 .ItemProjectReference(sdkProject.Project)
-                .Save();
+                .Save()
+                .TryBuild("Restore", out var restoreResult, out var restoreOutput)
+                .ForceProjectReevaluation()
+                .TryBuild("Pack", out var result, out var output);
 
-            var package = BuildPackage(
-                referencingProject.FullPath,
-                Path.Combine(TestRootPath, "referencing", "bin", "Debug"),
-                "referencing");
+            var package = ReadPackage("referencing");
 
             Assert.NotNull(package.FindDependency("test", NetStandard20));
             Assert.Null(package.FindDependency(referenced1, NetStandard20));
             Assert.Null(package.FindDependency(referenced2, NetStandard20));
         }
 
-        private IPackage BuildPackage(string path, string packageOutputDir, string packageId = "test")
+        private IPackage ReadPackage(string packageName)
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = $"pack {path}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
+            var path = Path.Combine(TestRootPath, packageName, "bin/Debug");
+            
+            var repository = new LocalPackageRepository(path);
 
-            var process = new Process
-            {
-                StartInfo = startInfo
-            };
-
-            process.Start();
-
-            process.WaitForExit(100000);
-
-            var repository = new LocalPackageRepository(packageOutputDir);
-
-            return repository.FindPackage(packageId);
+            return repository.FindPackage(packageName);
         }
     }
 }

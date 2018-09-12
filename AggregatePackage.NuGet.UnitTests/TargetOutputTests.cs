@@ -1,12 +1,11 @@
-using System;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Utilities.ProjectCreation;
+using Shouldly;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Utilities.ProjectCreation;
 using Xunit;
-using Shouldly;
-using Microsoft.Build.Execution;
 
 namespace AggregatePackage.NuGet.UnitTests
 {
@@ -32,9 +31,9 @@ namespace AggregatePackage.NuGet.UnitTests
                     }
                 ).Save();
 
-            var buildResult = RunTarget(sdkProject, "CollectPackageReferences");
+            var targetResult = GetTargetOutputs(sdkProject, "CollectPackageReferences");
 
-            buildResult.ResultsByTarget["CollectPackageReferences"].Items
+            targetResult.Items
                 .Where(item => item.ItemSpec != "NETStandard.Library")
                 .ToDictionary(item => item.ItemSpec, item => item.GetMetadata("Version"))
                 .ShouldBe(
@@ -46,8 +45,10 @@ namespace AggregatePackage.NuGet.UnitTests
                 );
         }
 
-        [Fact]
-        public void GetTargetPath_Output_All_Child_Project_Outputs()
+        [Theory]
+        [InlineData("GetTargetPath")]
+        [InlineData("Build")]
+        public void Build_Targets_Output_All_Child_Project_Outputs(string target)
         {
             var targetFramework = "netstandard2.0";
 
@@ -71,20 +72,22 @@ namespace AggregatePackage.NuGet.UnitTests
             var sdkProject = ProjectCreator
                 .Templates
                 .AggregateProject(
-                    path: Path.Combine(TestRootPath, "test", "test.pkgproj"),
+                    path: Path.Combine(TestRootPath, "test", "test.csproj"),
                     projectReferences: new Dictionary<Project, bool>
                     {
                         { referenced1Project.Project, true },
                         { referenced2Project.Project, true }
                     },
                     targetFrameworks: new[] { targetFramework }
-                ).Save();
+                ).Save()
+                .TryBuild("Restore", out var restoreResult, out var restoreOutput)
+                .ForceProjectReevaluation();
 
-            RunTarget(sdkProject, "Restore");
+            restoreResult.ShouldBeTrue(() => restoreOutput.GetConsoleLog());
 
-            BuildResult buildResult = RunTarget(sdkProject, "GetTargetPath");
+            var targetResult = GetTargetOutputs(sdkProject, target);
 
-            var buildOutputs = buildResult.ResultsByTarget["GetTargetPath"].Items
+            var buildOutputs = targetResult.Items
                 .Select(item => item.ItemSpec);
 
             buildOutputs
@@ -108,22 +111,24 @@ namespace AggregatePackage.NuGet.UnitTests
                         $"{referenced2}.dll"));
         }
 
-        private static BuildResult RunTarget(ProjectCreator sdkProject, string targetName)
+        private static TargetResult GetTargetOutputs(ProjectCreator sdkProject, string targetName)
         {
-            var manager = new BuildManager();
-            var logger = BuildOutput.Create();
+            lock (BuildManager.DefaultBuildManager)
+            {
+                var logger = BuildOutput.Create();
 
-            var buildResult = manager.Build(
-                new BuildParameters
-                {
-                    Loggers = logger.AsEnumerable()
-                },
-                new BuildRequestData(
-                    sdkProject.Project.CreateProjectInstance(),
-                    new[] { targetName }));
+                var buildResult = BuildManager.DefaultBuildManager.Build(
+                    new BuildParameters
+                    {
+                        Loggers = logger.AsEnumerable()
+                    },
+                    new BuildRequestData(
+                        sdkProject.Project.CreateProjectInstance(),
+                        new[] { targetName }));
 
-            buildResult.OverallResult.ShouldBe(BuildResultCode.Success, () => logger.GetConsoleLog());
-            return buildResult;
+                buildResult.OverallResult.ShouldBe(BuildResultCode.Success, () => logger.GetConsoleLog());
+                return buildResult.ResultsByTarget[targetName]; 
+            }
         }
     }
 }
