@@ -8,6 +8,8 @@ namespace AggregatePackage.NuGet.UnitTests
 {
     public static class AggregateProjectCreatorTemplates
     {
+        private static readonly string WorkingDirectory = Environment.CurrentDirectory;
+
         public static ProjectCreator AggregateProject(
             this ProjectCreatorTemplates templates,
             string path = null,
@@ -21,8 +23,6 @@ namespace AggregatePackage.NuGet.UnitTests
             IReadOnlyDictionary<Project, bool> projectReferences = null,
             IReadOnlyList<string> targetFrameworks = null)
         {
-            string currentDirectory = Environment.CurrentDirectory;
-
             return ProjectCreator.Create(
                 path,
                 defaultTargets,
@@ -32,7 +32,7 @@ namespace AggregatePackage.NuGet.UnitTests
                 treatAsLocalProperty,
                 projectCollection,
                 projectFileOptions)
-                .Import(Path.Combine(currentDirectory, "Sdk", "Sdk.props"))
+                .Import(Path.Combine(WorkingDirectory, "Sdk", "Sdk.props"))
                 .ForEach(projectReferences, (projectReference, project) =>
                     project.ItemProjectReference(projectReference.Key,
                         metadata: new Dictionary<string, string>
@@ -42,7 +42,7 @@ namespace AggregatePackage.NuGet.UnitTests
                 .Property(
                     targetFrameworks?.Count > 1 ? "TargetFrameworks" : "TargetFramework",
                     string.Join(";", targetFrameworks ?? new[] { "netstandard2.0" }))
-                .Import(Path.Combine(currentDirectory, "Sdk", "Sdk.targets"));
+                .Import(Path.Combine(WorkingDirectory, "Sdk", "Sdk.targets"));
         }
     }
 }
