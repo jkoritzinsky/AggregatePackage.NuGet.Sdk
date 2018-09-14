@@ -40,7 +40,7 @@ namespace AggregatePackage.NuGet.UnitTests
             var sdkProject = ProjectCreator
                 .Templates
                 .AggregateProject(
-                    path: Path.Combine(TestRootPath, "test", "test.csproj"),
+                    path: Path.Combine(TestRootPath, "test", "test.pkgproj"),
                     projectReferences: new Dictionary<Project, bool>
                     {
                         { referenced1Project.Project, true },
@@ -86,7 +86,7 @@ namespace AggregatePackage.NuGet.UnitTests
             var sdkProject = ProjectCreator
                 .Templates
                 .AggregateProject(
-                    path: Path.Combine(TestRootPath, "test", "test.csproj"),
+                    path: Path.Combine(TestRootPath, "test", "test.pkgproj"),
                     projectReferences: new Dictionary<Project, bool>
                     {
                         { referenced1Project.Project, true },
@@ -128,7 +128,7 @@ namespace AggregatePackage.NuGet.UnitTests
             var sdkProject = ProjectCreator
                 .Templates
                 .AggregateProject(
-                    path: Path.Combine(TestRootPath, "test", "test.csproj"),
+                    path: Path.Combine(TestRootPath, "test", "test.pkgproj"),
                     projectReferences: new Dictionary<Project, bool>
                     {
                         { referenced1Project.Project, true },
