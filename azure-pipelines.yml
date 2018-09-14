@@ -1,0 +1,42 @@
+# .NET Desktop
+# Build and run tests for .NET Desktop or Windows classic desktop solutions.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/vsts/pipelines/apps/windows/dot-net
+name: 0.1.$(BuildId)
+
+pool:
+  vmImage: 'VS2017-Win2016'
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    versioningScheme: byBuildNumber
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'test'
+    projects: 'AggregatePackage.NuGet.UnitTests/AggregatePackage.NuGet.UnitTests.csproj'
+    publishTestResults: true
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'pack'
+    versioningScheme: byBuildNumber
+
+- task: CopyFiles@2
+  inputs:
+    displayName: 'Copy AggregatePackage.NuGet.Sdk package to Artifacts'
+    sourceFolder: '$(Build.SourcesDirectory)/'
+    contents: '**/*.nupkg'
+    targetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: Packages'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'

@@ -1,6 +1,4 @@
 <Project>
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
-
   <!-- Patched Restore Targets -->
 
   <Target Name="_GetRestoreProjectStyle"
@@ -9,16 +7,6 @@
       <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
       <PackageReferenceCompatibleProjectStyle>true</PackageReferenceCompatibleProjectStyle>
     </PropertyGroup>
-  </Target>
-
-  <Target Name="_GenerateRestoreProjectPathWalk"
-    DependsOnTargets="_GenerateRestoreProjectPathItems"
-    Returns="@(_RestoreProjectPathItems)">
-
-    <!-- Include only the current project in the result -->
-    <ItemGroup>
-      <_RestoreProjectPathItems Include="$(MSBuildProjectFullPath)" />
-    </ItemGroup>
   </Target>
 
   <!-- Add copy of AssignProjectConfiguration target so targets that have BeforeTargets="AssignProjectConfiguration" don't run. -->
@@ -71,20 +59,37 @@
       Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
                   %(_MSBuildProjectReferenceExistent.SetPlatform);
                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
-      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
-      <Output TaskParameter="TargetOutputs" ItemName="PackageReference" />
+      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)"
+      Condition="'%(_MSBuildProjectReferenceExistent.EmbedReference)' != 'false'">
+      <Output TaskParameter="TargetOutputs" ItemName="UnfliteredPackageReference" />
     </MSBuild>
+
+    <RemoveDuplicates Inputs="@(UnfliteredPackageReference)">
+      <Output TaskParameter="Filtered" ItemName="PackageReference" />
+    </RemoveDuplicates>
+      
   </Target>
 
-  <!-- Override target to not restore package references. -->
+  <!-- Override target to not restore embedded project references. -->
   <Target Name="_GenerateProjectRestoreGraphPerFramework"
     DependsOnTargets="_GetRestoreProjectStyle;CollectPackageReferences"
     Returns="@(_RestoreGraphEntry)">
+
+    <GetRestoreProjectReferencesTask
+      ProjectUniqueName="$(MSBuildProjectFullPath)"
+      ProjectReferences="@(ProjectReference)"
+      TargetFrameworks="$(TargetFramework)"
+      ParentProjectPath="$(MSBuildProjectFullPath)"
+      Condition="'%(ProjectReference.EmbedReference)' == 'false'">
+      <Output
+        TaskParameter="RestoreGraphItems"
+        ItemName="_RestoreGraphEntry" />
+    </GetRestoreProjectReferencesTask>
+
     <GetRestorePackageReferencesTask
       ProjectUniqueName="$(MSBuildProjectFullPath)"
       PackageReferences="@(PackageReference)"
       TargetFrameworks="$(TargetFramework)">
-
       <Output
         TaskParameter="RestoreGraphItems"
         ItemName="_RestoreGraphEntry" />
@@ -103,49 +108,6 @@
         <AssetTargetFallback>$(AssetTargetFallback)</AssetTargetFallback>
         <TargetFramework>$(TargetFramework)</TargetFramework>
       </_RestoreGraphEntry>
-    </ItemGroup>
-  </Target>
-
-  <Import Project="Aggregate.Sdk.Build.targets" Condition="'$(IsCrossTargetingBuild)' != 'true'" />
-  
-  <!-- Patched Pack Targets -->
-
-  <Target Name="_GetBuildOutputFilesWithTfm"
-    DependsOnTargets="PrepareProjectReferences"
-    Returns="@(BuildOutputInPackage)">
-    <MSBuild
-      Projects="@(_MSBuildProjectReferenceExistent)"
-      Targets="_GetBuildOutputFilesWithTfm"
-      Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
-                   %(_MSBuildProjectReferenceExistent.SetPlatform);
-                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
-      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
-      <Output TaskParameter="TargetOutputs" ItemName="BuildOutputInPackage" />
-    </MSBuild>
-
-    <ItemGroup>
-      <BuildOutputInPackage Update="@(BuildOutputInPackage)" TargetFramework="$(TargetFramework)" />
-    </ItemGroup>
-  </Target>
-
-
-  <Target Name="_GetDebugSymbolsWithTfm"
-          DependsOnTargets="PrepareProjectReferences"
-          Returns="@(DebugSymbolsInPackage)">
-    <MSBuild
-      Projects="@(_MSBuildProjectReferenceExistent)"
-      Targets="_GetDebugSymbolsWithTfm"
-      Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
-                   %(_MSBuildProjectReferenceExistent.SetPlatform);
-                   %(_MSBuildProjectReferenceExistent.SetTargetFramework);"
-      RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
-      <Output
-          TaskParameter="TargetOutputs"
-          ItemName="DebugSymbolsInPackage" />
-    </MSBuild>
-
-    <ItemGroup>
-      <BuildOutputInPackage Update="@(BuildOutputInPackage)" TargetFramework="$(TargetFramework)" />
     </ItemGroup>
   </Target>
 </Project>

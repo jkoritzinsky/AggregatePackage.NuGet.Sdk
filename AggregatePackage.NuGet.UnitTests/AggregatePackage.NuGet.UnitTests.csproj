@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net47</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.0.18" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
+    <PackageReference Include="MSBuild.ProjectCreation" Version="1.2.5" />
+    <PackageReference Include="NuGet.Core" Version="2.14.0" />
+    <PackageReference Include="xunit" Version="2.3.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
+    <PackageReference Include="Shouldly" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../AggregatePackage.NuGet.Sdk/Sdk/*.props" Link="Sdk/%(Filename).props" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../AggregatePackage.NuGet.Sdk/Sdk/*.targets" Link="Sdk/%(Filename).targets" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../AggregatePackage.NuGet.Sdk/build/*.props" Link="build/%(Filename).props" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../AggregatePackage.NuGet.Sdk/build/*.targets" Link="build/%(Filename).targets" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
