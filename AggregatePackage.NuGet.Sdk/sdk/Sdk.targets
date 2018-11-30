@@ -2,6 +2,6 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
   <Import Project="..\build\AggregatePackage.NuGet.Restore.targets" />
-  <Import Project="..\build\AggregatePackage.NuGet.Build.targets" Condition="'$(IsCrossTargetingBuild)' != 'true'" />
+  <Import Project="..\build\AggregatePackage.NuGet.Build.targets" Condition="'$(IsCrossTargetingBuild)' != 'true' And '$(AggregatePackageSuppressBuildOverrides)' != 'true'" />
   <Import Project="..\build\AggregatePackage.NuGet.Pack.targets" />
 </Project>
